@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuth } from '../store/auth';
 
-// GANTI URL INI DENGAN DOMAIN WORDPRESS ANDA
+// URL Backend WP Anda
 const BASE_URL = "https://erpos.tekrabyte.id/wp-json/tekra-saas/v1";
 
 const api = axios.create({
@@ -9,11 +9,11 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json' }
 });
 
-// Auto-inject Token Auth (Simulasi jika nanti pakai JWT)
+// INI PERBAIKANNYA: Uncomment baris Authorization
 api.interceptors.request.use((config) => {
     const { token } = useAuth.getState();
     if (token) {
-        // config.headers.Authorization = `Bearer ${token}`; 
+        config.headers.Authorization = `Bearer ${token}`; // <-- Hapus tanda // di depan
     }
     return config;
 });

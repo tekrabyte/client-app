@@ -148,7 +148,7 @@ export default function AdminLayout() {
             icon: <Settings size={20} />,
             key: "settings",
             items: [
-                { name: "Account", path: `/${slug}/settings/account` },
+               { name: "Account", path: `/${slug}/settings/account` },
                 { name: "Billing", path: `/${slug}/settings/billing` },
                 { name: "Outlets", path: `/${slug}/settings/outlets` },
                 { name: "Bank Account", path: `/${slug}/settings/bank` },
