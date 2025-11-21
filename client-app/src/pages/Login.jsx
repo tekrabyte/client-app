@@ -35,8 +35,8 @@ export default function Login() {
                 login(res.data); 
 
                 // Redirect ke Dashboard spesifik tenant
-                // Contoh: /kopikenangan/dashboard
-                navigate(`/${tenantSlug}/dashboard`);
+                // Contoh: /kopikenangan/
+                navigate(`/${tenantSlug}/`);
             }
         } catch (err) {
             setError(err.response?.data?.message || "Email atau Password salah.");

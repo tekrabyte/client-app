@@ -1,12 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
-if (!$allowed) {
-    return new WP_REST_Response([
-        "error" => "feature_locked",
-        "message" => "Your current plan does not support this feature",
-        "upgrade_url" => $allowed["upgrade_url"]
-    ], 403);
-}
+
 class TEKRAERPOS_SaaS_REST_Tenant_Settings {
 
     public static function register() {
