@@ -5,7 +5,8 @@ class TEKRAERPOS_SaaS_Xendit_Webhook {
 
     public function __construct() {
         add_action('rest_api_init', function() {
-            register_rest_route('tekraerpos/v1', '/xendit/webhook', [
+            // PERBAIKAN: Namespace disamakan jadi 'tekra-saas/v1'
+            register_rest_route('tekra-saas/v1', '/xendit/webhook', [
                 'methods' => 'POST',
                 'callback' => [$this, 'handle'],
                 'permission_callback' => '__return_true'
@@ -20,12 +21,10 @@ class TEKRAERPOS_SaaS_Xendit_Webhook {
         
         // Validasi Payload
         if (!$payload || !isset($payload["event"])) {
-            // Cek apakah ini tes ping dari Xendit?
             return new WP_REST_Response(["status" => "listening"], 200);
         }
 
         $event = $payload['event'];
-        // Struktur data Xendit bisa berbeda tergantung event, ambil ID invoice dengan aman
         $data_obj = $payload['data'] ?? $payload; 
         $invoice_id = $data_obj['id'] ?? '';
 
@@ -61,13 +60,13 @@ class TEKRAERPOS_SaaS_Xendit_Webhook {
                 "expires_at" => $expires
             ], ["id" => $sub->id]);
 
-            // Aktifkan Tenant & Update Plan sesuai Subscription
+            // Aktifkan Tenant & Update Plan
             $wpdb->update($tenant_table, [
                 "status" => "active",
                 "plan_id" => $sub->plan_id
             ], ["id" => $tenant_id]);
 
-            // Catat di History Invoice
+            // Catat History
             $wpdb->insert($inv_table, [
                 "tenant_id" => $tenant_id,
                 "invoice_id" => $invoice_id,
@@ -81,17 +80,15 @@ class TEKRAERPOS_SaaS_Xendit_Webhook {
 
         // 2. INVOICE KADALUARSA (EXPIRED)
         if ($event === "invoice.expired") {
-            // Logic Downgrade Plan / Suspend
             $downgrade_result = TEKRAERPOS_SaaS_Tenant::downgrade_plan($tenant_id);
 
-            // Update status subscription jadi expired
             $wpdb->update($sub_table, [
                 "status" => "expired"
             ], ["id" => $sub->id]);
 
             return new WP_REST_Response([
                 "status" => "processed_expired",
-                "action" => $downgrade_result // 'suspended' atau slug plan baru
+                "action" => $downgrade_result
             ], 200);
         }
 

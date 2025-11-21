@@ -6,9 +6,3 @@
 
 node_modules/
 /node_modules
-
-/superadmin-app
-superadmin-app/
-
-/client-app
-client-app/ 

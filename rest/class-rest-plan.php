@@ -2,12 +2,7 @@
 if (!defined('ABSPATH')) exit;
 $allowed = apply_filters("tekraerpos/check_feature", true, $tenant_id, "add_outlet");
 
-if (!$allowed) {
-    return new WP_REST_Response([
-        "error" => "feature_locked",
-        "message" => "Your current plan does not support this feature. Please upgrade."
-    ], 403);
-}
+
 class TEKRAERPOS_REST_Plan {
 
     public function __construct() {

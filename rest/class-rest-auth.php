@@ -19,41 +19,26 @@ class TEKRAERPOS_SaaS_REST_Auth {
         $email = sanitize_email($req['email']);
         $pass  = $req['password'];
 
-        // Autentikasi User WordPress
         $user = wp_authenticate($email, $pass);
 
         if (is_wp_error($user)) {
             return new WP_Error('invalid_credentials', 'Email atau password salah.', ['status'=>403]);
         }
 
-        // Ambil Data Tenant User Ini
+        // Cek Tenant
         $tenant = TEKRAERPOS_SaaS_Tenant::get_by_owner($user->ID);
-
         if (!$tenant) {
-             // Opsional: Handle jika user terdaftar tapi tidak punya tenant (misal staff)
-             // Cek user meta jika dia staff
-             $linked_tenant_id = get_user_meta($user->ID, 'tekra_tenant_id', true);
-             if ($linked_tenant_id) {
-                 $tenant = TEKRAERPOS_SaaS_Tenant::get($linked_tenant_id);
-             }
+             $linked = get_user_meta($user->ID, 'tekra_tenant_id', true);
+             if ($linked) $tenant = TEKRAERPOS_SaaS_Tenant::get($linked);
         }
 
-        if (!$tenant) {
-            return new WP_Error('no_tenant', 'User tidak terhubung dengan Tenant manapun.', ['status'=>403]);
-        }
+        if (!$tenant) return new WP_Error('no_tenant', 'User tidak terhubung tenant.', ['status'=>403]);
 
-        // Cek Status Tenant
-        if ($tenant->status === 'suspended') {
-            return new WP_Error('suspended', 'Akun tenant ditangguhkan. Silakan hubungi admin.', [
-                'status' => 403,
-                'reason' => 'suspended',
-                'renew_url' => site_url("/billing?tenant={$tenant->id}") 
-            ]);
-        }
+        // GENERATE TOKEN & SIMPAN
+        $secret = wp_generate_password(30, false);
+        update_user_meta($user->ID, 'tekra_api_token', $secret); // <--- PENTING: Simpan token
 
-        // Generate Token Sederhana (Untuk keperluan demo/MVP)
-        // Di production sebaiknya pakai JWT Auth Plugin
-        $token = base64_encode($user->ID . ':' . wp_generate_password(20));
+        $token = base64_encode($user->ID . ':' . $secret);
 
         return [
             'success' => true,

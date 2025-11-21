@@ -4,103 +4,113 @@ if (!defined('ABSPATH')) exit;
 class TEKRAERPOS_SaaS_Loader {
 
     public static function init() {
-        // Load semua file core (Helper, DB, Encryption, dll)
+        // 1. HANDLE CORS (FIXED)
+        add_action('init', function() {
+            // Ambil Origin dari request
+            $origin = get_http_origin();
+            
+            // Daftar domain yang diizinkan
+            $allowed_origins = [
+                'http://localhost:5173',            // Development Local
+                'https://dashboard.tekrabyte.id'    // Production
+            ];
+
+            if ($origin && in_array($origin, $allowed_origins)) {
+                header("Access-Control-Allow-Origin: " . $origin);
+                header("Access-Control-Allow-Credentials: true");
+                header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
+                header("Access-Control-Allow-Headers: Content-Type, Authorization, X-WP-Nonce");
+                header("Vary: Origin");
+            }
+
+            // Handle Preflight Request
+            if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+                status_header(200);
+                exit();
+            }
+        });
+
+        // 2. HANDLE JSON AUTHENTICATION (PENTING UNTUK 401)
+        add_filter('determine_current_user', function($user) {
+            if (!empty($user)) return $user;
+
+            $headers = getallheaders();
+            $auth_header = $headers['Authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
+            if (!empty($auth_header) && preg_match('/Bearer\s(\S+)/', $auth_header, $matches)) {
+                $token = $matches[1];
+                
+                // Decode Token (Format: USER_ID : SECRET)
+                $decoded = base64_decode($token);
+                if (!$decoded) return $user;
+
+                list($user_id, $secret) = explode(':', $decoded);
+                
+                // Validasi Token
+                $stored_secret = get_user_meta($user_id, 'tekra_api_token', true);
+                
+                if ($stored_secret && hash_equals($stored_secret, $secret)) {
+                    return $user_id; // LOGIN BERHASIL
+                }
+            }
+            return $user;
+        });
+
         self::load_core_files();
+        self::load_modules();
+    }
 
-        // --- PUBLIC / FRONTEND MODULES (WAJIB UNTUK SHORTCODE) ---
-        
-        // 1. Load Shortcode Form Signup Modern (Yang baru kita buat)
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'public/signup-form.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'public/signup-form.php';
+    private static function load_core_files() {
+        $files = [
+            'includes/helpers.php',
+            'includes/class-encryption.php',
+            'includes/class-saas-database.php',
+            'includes/class-tenant-manager.php',
+            'includes/class-plan-manager.php',
+            'includes/class-subscription-manager.php',
+            'includes/class-provisioning.php',
+            'includes/class-provisioning-seeds.php',
+            'includes/class-xendit-invoice.php'
+        ];
+        foreach($files as $file) {
+            if (file_exists(TEKRAERPOS_SAAS_DIR . $file)) require_once TEKRAERPOS_SAAS_DIR . $file;
         }
+    }
 
-        // 2. Load Router (Untuk menangani URL /tenant/slug, /login, /signup)
+    private static function load_modules() {
+        // Public & Shortcodes
         if (file_exists(TEKRAERPOS_SAAS_DIR . 'public/class-public-router.php')) {
              require_once TEKRAERPOS_SAAS_DIR . 'public/class-public-router.php';
              TEKRAERPOS_Public_Router::get_instance();
         }
-
-        // 3. Load Auth Handler (Untuk proses Login form POST)
         if (file_exists(TEKRAERPOS_SAAS_DIR . 'public/class-public-auth.php')) {
              require_once TEKRAERPOS_SAAS_DIR . 'public/class-public-auth.php';
              new TEKRAERPOS_Public_Auth();
         }
-
-        // 4. Load Public API (Jika ada endpoint public khusus)
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'public/class-public-api.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'public/class-public-api.php';
+        if (file_exists(TEKRAERPOS_SAAS_DIR . 'public/class-public-shortcodes.php')) {
+             require_once TEKRAERPOS_SAAS_DIR . 'public/class-public-shortcodes.php';
+             new TEKRAERPOS_Public_Shortcodes();
+        }
+        if (file_exists(TEKRAERPOS_SAAS_DIR . 'public/signup-form.php')) {
+             require_once TEKRAERPOS_SAAS_DIR . 'public/signup-form.php';
         }
 
-
-        // --- REST API MODULES (BACKEND) ---
-        
-        // Core REST
+        // REST API
         if (file_exists(TEKRAERPOS_SAAS_DIR . 'includes/class-saas-rest.php')) {
-            require_once TEKRAERPOS_SAAS_DIR . 'includes/class-saas-rest.php';
-        }
-        
-        // Signup Handler (Penting untuk form pendaftaran)
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-signup.php')) {
-            require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-signup.php';
+             require_once TEKRAERPOS_SAAS_DIR . 'includes/class-saas-rest.php';
         }
 
-        // Dashboard & Auth API
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-dashboard.php')) {
-            require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-dashboard.php';
-        }
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-auth.php')) {
-            require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-auth.php';
+        $apis = ['signup', 'auth', 'dashboard', 'products', 'orders', 'outlet', 'employees', 'subscription', 'xendit-webhook', 'tenant-settings', 'health', 'billing'];
+        foreach($apis as $api) {
+            $path = TEKRAERPOS_SAAS_DIR . "rest/class-rest-$api.php";
+            if (file_exists($path)) require_once $path;
         }
 
-        // Webhooks & Billing
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-xendit-webhook.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-xendit-webhook.php';
-        }
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-subscription.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-subscription.php';
-        }
-        
-        // CRUD Modules (Produk, Outlet, Order, Employee)
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-products.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-products.php';
-        }
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-outlet.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-outlet.php';
-        }
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-orders.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-orders.php';
-        }
-        if (file_exists(TEKRAERPOS_SAAS_DIR . 'rest/class-rest-employees.php')) {
-             require_once TEKRAERPOS_SAAS_DIR . 'rest/class-rest-employees.php';
-        }
-
-
-        // --- WP-CLI COMMANDS ---
-        if (defined('WP_CLI') && WP_CLI) {
-            if (file_exists(TEKRAERPOS_SAAS_DIR . 'includes/class-cli-commands.php')) {
-                require_once TEKRAERPOS_SAAS_DIR . 'includes/class-cli-commands.php';
-            }
-        }
-
-        // --- ADMIN MODULES ---
+        // Admin
         if (is_admin()) {
             require_once TEKRAERPOS_SAAS_DIR . 'admin/class-admin-menu.php';
             new TEKRAERPOS_Admin_Menu();
         }
-    }
-
-    /**
-     * Helper function untuk memuat file-file inti plugin.
-     */
-    private static function load_core_files() {
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/helpers.php';
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/class-encryption.php';
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/class-saas-database.php';
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/class-tenant-manager.php';
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/class-plan-manager.php';
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/class-subscription-manager.php';
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/class-provisioning.php';
-        require_once TEKRAERPOS_SAAS_DIR . 'includes/class-provisioning-seeds.php';
     }
 
     public static function activate() {
