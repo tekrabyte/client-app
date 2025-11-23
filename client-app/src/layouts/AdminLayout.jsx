@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../store/auth";
+import api from "../api/client"; // Import API Client
 import { 
     LayoutDashboard, FileText, Library, Box, Globe, Users, 
     Monitor, Grid, CreditCard, Settings, LogOut, Store, 
@@ -19,13 +20,38 @@ function getDaysLeft(createdAt) {
 
 export default function AdminLayout() {
     const { slug } = useParams();
-    const { tenant, logout } = useAuth();
+    const { user, token, tenant, login, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     // State Menu & Trial
     const [openMenus, setOpenMenus] = useState({});
     
+    // --- TAMBAHAN: Sync Status Tenant Terbaru ---
+    // Ini memastikan banner trial hilang otomatis setelah bayar tanpa perlu relogin
+    useEffect(() => {
+        async function syncStatus() {
+            try {
+                const res = await api.get("/tenant/settings");
+                if (res.data.success && res.data.tenant) {
+                    // Update data tenant di penyimpanan lokal (Store)
+                    // Kita memanggil fungsi login ulang dengan data user yang diupdate
+                    login({
+                        token: token,
+                        user: {
+                            ...user,
+                            tenant: res.data.tenant
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Gagal sinkronisasi status tenant:", err);
+            }
+        }
+        syncStatus();
+    }, []); // Jalan sekali saat layout dimuat
+    // ---------------------------------------------
+
     // Hitung status trial
     const daysLeft = tenant ? getDaysLeft(tenant.created_at) : 0;
     const isTrial = tenant?.status === 'trial';
@@ -245,7 +271,7 @@ export default function AdminLayout() {
                     </div>
                 </header>
 
-                {/* ALERT TRIAL (Sudah Ditambahkan Kembali) */}
+                {/* ALERT TRIAL */}
                 {isTrial && daysLeft > 0 && (
                     <div className="bg-orange-50 border-b border-orange-200 text-orange-800 px-8 py-3 flex justify-between items-center text-sm">
                         <div className="flex items-center gap-2">

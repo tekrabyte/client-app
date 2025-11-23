@@ -9,14 +9,7 @@ import POSLayout from "./layouts/POSLayout";
 // Pages - Auth & POS
 import Login from "./pages/Login";
 import POSPage from "./pages/pos/POSPage";
-
-// Pages - Admin
-import Dashboard from "./pages/admin/Dashboard";
-import ProductList from "./pages/admin/ProductList";
-import OutletList from "./pages/admin/OutletList";
-import Settings from "./pages/admin/Settings";
-import Billing from "./pages/settings/Billing";
-import EmployeeList from "./pages/admin/EmployeeList";
+import Dashboard from "./pages/Dashboard";
 
 // Pages - Reports
 import SalesReport from "./pages/reports/SalesReport";
@@ -25,6 +18,7 @@ import InvoicesReport from "./pages/reports/InvoicesReport";
 import ShiftReport from "./pages/reports/ShiftReport";
 
 // Pages - Library
+import ProductList from "./pages/library/ProductList";
 import Modifiers from "./pages/library/Modifiers";
 import Categories from "./pages/library/Categories";
 import Bundles from "./pages/library/Bundles";
@@ -35,9 +29,53 @@ import Gratuity from "./pages/library/Gratuity";
 import SalesType from "./pages/library/SalesType";
 import Brands from "./pages/library/Brands";
 
+// Pages - Inventory (NEW)
+import InventorySummary from "./pages/inventory/Summary";
+import Suppliers from "./pages/inventory/Suppliers";
+import PurchaseOrder from "./pages/inventory/PurchaseOrder";
+import Transfer from "./pages/inventory/Transfer";
+import Adjustment from "./pages/inventory/Adjustment";
+
+// Pages - Online (NEW)
+import TekraPos from "./pages/online/TekraPos";
+import Gofood from "./pages/online/Gofood";
+
+// Pages - Customers (NEW)
+import CustomerList from "./pages/customers/CustomerList";
+import Feedback from "./pages/customers/Feedback";
+import Loyalty from "./pages/customers/Loyalty";
+
+// Pages - Employees Extras (NEW)
+import EmployeeList from "./pages/employees/EmployeeList";
+import EmployeeAccess from "./pages/employees/Access";
+import PinAccess from "./pages/employees/Pin";
+
+// Pages - CDS (NEW)
+import CdsCampaign from "./pages/cds/Campaign";
+import CdsSettings from "./pages/cds/Settings";
+
+// Pages - Tables (NEW)
+import TableGroups from "./pages/tables/Groups";
+import TableMap from "./pages/tables/Map";
+import TableReport from "./pages/tables/Report";
+
+// Pages - Payments (NEW)
+import PaymentQris from "./pages/payments/Qris";
+import PaymentConfig from "./pages/payments/Config";
+
+// Pages - Settings Extras (NEW)
+import Billing from "./pages/settings/Billing";
+import Settings from "./pages/settings/Settings";
+import OutletList from "./pages/settings/OutletList";
+import BankAccount from "./pages/settings/Bank";
+import PublicProfile from "./pages/settings/Profile";
+import ReceiptSettings from "./pages/settings/Receipt";
+import CheckoutSettings from "./pages/settings/Checkout";
+import InventorySettings from "./pages/settings/Inventory";
+import EmailNotification from "./pages/settings/Email";
+
 function ProtectedRoute({ children }) {
     const user = useAuth((s) => s.user);
-    // Jika belum login, lempar ke halaman login umum
     if (!user) return <Navigate to="/login" />;
     return children;
 }
@@ -46,22 +84,16 @@ export default function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* ROUTE 1: LOGIN UMUM 
-                    Bisa diakses di: dashboard.tekrabyte.id/login
-                */}
+                {/* ROUTE 1: LOGIN UMUM */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/" element={<Navigate to="/login" />} />
 
-                {/* ROUTE 2: LOGIN SPESIFIK TENANT 
-                    Contoh: dashboard.tekrabyte.id/kopikenangan/login
-                */}
+                {/* ROUTE 2: LOGIN SPESIFIK TENANT */}
                 <Route path="/:slug/login" element={<Login />} />
 
-                {/* ROUTE 3: DASHBOARD ADMIN
-                    Contoh: dashboard.tekrabyte.id/kopikenangan/ 
-                */}
+                {/* ROUTE 3: DASHBOARD ADMIN */}
                 <Route path="/:slug/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-                    {/* Dashboard */}
+                    {/* Core */}
                     <Route index element={<Dashboard />} />
                     
                     {/* Reports */}
@@ -82,55 +114,53 @@ export default function App() {
                     <Route path="library/sales-type" element={<SalesType />} />
                     <Route path="library/brands" element={<Brands />} />
                     
-                    {/* Inventory - Placeholder routes (pages need to be created) */}
-                    <Route path="inventory/summary" element={<div className="p-8"><h1 className="text-2xl font-bold">Inventory Summary</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="inventory/suppliers" element={<div className="p-8"><h1 className="text-2xl font-bold">Suppliers</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="inventory/po" element={<div className="p-8"><h1 className="text-2xl font-bold">Purchase Order</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="inventory/transfer" element={<div className="p-8"><h1 className="text-2xl font-bold">Transfer</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="inventory/adjustment" element={<div className="p-8"><h1 className="text-2xl font-bold">Adjustment</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    {/* Inventory */}
+                    <Route path="inventory/summary" element={<InventorySummary />} />
+                    <Route path="inventory/suppliers" element={<Suppliers />} />
+                    <Route path="inventory/po" element={<PurchaseOrder />} />
+                    <Route path="inventory/transfer" element={<Transfer />} />
+                    <Route path="inventory/adjustment" element={<Adjustment />} />
                     
-                    {/* Online Channels - Placeholder routes */}
-                    <Route path="online/tekrapos" element={<div className="p-8"><h1 className="text-2xl font-bold">TekraPOS Order</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="online/gofood" element={<div className="p-8"><h1 className="text-2xl font-bold">Gofood</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    {/* Online Channels */}
+                    <Route path="online/tekrapos" element={<TekraPos />} />
+                    <Route path="online/gofood" element={<Gofood />} />
                     
-                    {/* Customers - Placeholder routes */}
-                    <Route path="customers" element={<div className="p-8"><h1 className="text-2xl font-bold">Customers List</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="customers/feedback" element={<div className="p-8"><h1 className="text-2xl font-bold">Feedback</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="customers/loyalty" element={<div className="p-8"><h1 className="text-2xl font-bold">Loyalty Program</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    {/* Customers */}
+                    <Route path="customers" element={<CustomerList />} />
+                    <Route path="customers/feedback" element={<Feedback />} />
+                    <Route path="customers/loyalty" element={<Loyalty />} />
                     
                     {/* Employees */}
                     <Route path="employees" element={<EmployeeList />} />
-                    <Route path="employees/access" element={<div className="p-8"><h1 className="text-2xl font-bold">Employee Access</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="employees/pin" element={<div className="p-8"><h1 className="text-2xl font-bold">PIN Access</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    <Route path="employees/access" element={<EmployeeAccess />} />
+                    <Route path="employees/pin" element={<PinAccess />} />
                     
-                    {/* Customer Display (CDS) - Placeholder routes */}
-                    <Route path="cds/campaign" element={<div className="p-8"><h1 className="text-2xl font-bold">Campaign</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="cds/settings" element={<div className="p-8"><h1 className="text-2xl font-bold">CDS Settings</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    {/* Customer Display (CDS) */}
+                    <Route path="cds/campaign" element={<CdsCampaign />} />
+                    <Route path="cds/settings" element={<CdsSettings />} />
                     
-                    {/* Table Management - Placeholder routes */}
-                    <Route path="tables/group" element={<div className="p-8"><h1 className="text-2xl font-bold">Table Group</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="tables/map" element={<div className="p-8"><h1 className="text-2xl font-bold">Table Map</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="tables/report" element={<div className="p-8"><h1 className="text-2xl font-bold">Table Report</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    {/* Table Management */}
+                    <Route path="tables/group" element={<TableGroups />} />
+                    <Route path="tables/map" element={<TableMap />} />
+                    <Route path="tables/report" element={<TableReport />} />
                     
-                    {/* Payments - Placeholder routes */}
-                    <Route path="payments/qris" element={<div className="p-8"><h1 className="text-2xl font-bold">QRIS</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="payments/config" element={<div className="p-8"><h1 className="text-2xl font-bold">Payment Configuration</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    {/* Payments */}
+                    <Route path="payments/qris" element={<PaymentQris />} />
+                    <Route path="payments/config" element={<PaymentConfig />} />
                     
                     {/* Account Settings */}
                     <Route path="settings/account" element={<Settings />} />
                     <Route path="settings/billing" element={<Billing />} />
                     <Route path="settings/outlets" element={<OutletList />} />
-                    <Route path="settings/bank" element={<div className="p-8"><h1 className="text-2xl font-bold">Bank Account</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="settings/profile" element={<div className="p-8"><h1 className="text-2xl font-bold">Public Profile</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="settings/receipt" element={<div className="p-8"><h1 className="text-2xl font-bold">Receipt</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="settings/checkout" element={<div className="p-8"><h1 className="text-2xl font-bold">Checkout</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="settings/inventory" element={<div className="p-8"><h1 className="text-2xl font-bold">Inventory Settings</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
-                    <Route path="settings/email" element={<div className="p-8"><h1 className="text-2xl font-bold">Email Notification</h1><p className="mt-4">Halaman ini belum tersedia.</p></div>} />
+                    <Route path="settings/bank" element={<BankAccount />} />
+                    <Route path="settings/profile" element={<PublicProfile />} />
+                    <Route path="settings/receipt" element={<ReceiptSettings />} />
+                    <Route path="settings/checkout" element={<CheckoutSettings />} />
+                    <Route path="settings/inventory" element={<InventorySettings />} />
+                    <Route path="settings/email" element={<EmailNotification />} />
                 </Route>
 
-                {/* ROUTE 4: MODE KASIR (POS)
-                    Contoh: dashboard.tekrabyte.id/kopikenangan/pos
-                */}
+                {/* ROUTE 4: MODE KASIR (POS) */}
                 <Route path="/:slug/pos" element={<ProtectedRoute><POSLayout /></ProtectedRoute>}>
                     <Route index element={<POSPage />} />
                 </Route>

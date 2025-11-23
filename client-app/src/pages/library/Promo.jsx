@@ -9,81 +9,53 @@ export default function Promo() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [editData, setEditData] = useState(null);
-    const [formData, setFormData] = useState({ name: '', code: '', discount_type: 'percentage', discount_value: '0', start_date: '', end_date: '', is_active: true });
+    const [formData, setFormData] = useState({});
 
-    useEffect(() => { loadData(); }, []);
-
-    async function loadData() {
+    const loadData = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/library/promo');
-            setData(res.data.promos || []);
-        } catch (error) {
-            console.error('Failed to load promos:', error);
-            setData([]);
-        } finally { setLoading(false); }
-    }
+            const res = await api.get('/tenant/data/promos');
+            setData(res.data.data || []);
+        } catch (e) {} finally { setLoading(false); }
+    };
+
+    useEffect(() => { loadData(); }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (editData) {
-                await api.put(`/library/promo/${editData.id}`, formData);
-            } else {
-                await api.post('/library/promo', formData);
-            }
+            if (formData.id) await api.put(`/tenant/data/promos/${formData.id}`, formData);
+            else await api.post('/tenant/data/promos', formData);
             setShowModal(false);
-            setFormData({ name: '', code: '', discount_type: 'percentage', discount_value: '0', start_date: '', end_date: '', is_active: true });
-            setEditData(null);
             loadData();
-        } catch (error) {
-            alert('Gagal menyimpan data: ' + error.message);
-        }
-    };
-
-    const handleEdit = (item) => {
-        setEditData(item);
-        setFormData({ name: item.name, code: item.code, discount_type: item.discount_type, discount_value: item.discount_value, start_date: item.start_date, end_date: item.end_date, is_active: item.is_active });
-        setShowModal(true);
-    };
-
-    const handleDelete = async (item) => {
-        if (confirm(`Hapus promo "${item.name}"?`)) {
-            try {
-                await api.delete(`/library/promo/${item.id}`);
-                loadData();
-            } catch (error) {
-                alert('Gagal menghapus: ' + error.message);
-            }
-        }
+        } catch (e) { alert("Gagal menyimpan."); }
     };
 
     const columns = [
-        { header: 'Nama Promo', accessor: (item) => item.name || '-' },
-        { header: 'Kode', accessor: (item) => item.code || '-' },
-        { header: 'Diskon', accessor: (item) => item.discount_type === 'percentage' ? `${item.discount_value}%` : `Rp ${parseInt(item.discount_value || 0).toLocaleString()}` },
-        { header: 'Periode', accessor: (item) => `${item.start_date || '-'} s/d ${item.end_date || '-'}` },
-        { header: 'Status', render: (item) => <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{item.is_active ? 'Aktif' : 'Nonaktif'}</span> }
+        { header: 'Nama Promo', accessor: (i) => i.name },
+        { header: 'Kode', accessor: (i) => <span className="font-mono bg-gray-100 px-2 py-1 rounded">{i.code}</span> },
+        { header: 'Diskon', accessor: (i) => i.discount_type === 'percent' ? `${i.discount_value}%` : `Rp ${parseInt(i.discount_value).toLocaleString()}` },
+        { header: 'Periode', accessor: (i) => `${i.start_date} s/d ${i.end_date}` },
     ];
 
     return (
         <div>
-            <PageHeader title="Promo" subtitle="Kelola promo dan voucher" />
-            <DataTable columns={columns} data={data} loading={loading} onAdd={() => setShowModal(true)} onEdit={handleEdit} onDelete={handleDelete} searchPlaceholder="Cari promo..." />
-
-            <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditData(null); }} title={editData ? 'Edit Promo' : 'Tambah Promo'}>
+            <PageHeader title="Promo & Voucher" subtitle="Kelola kode promo" />
+            <DataTable columns={columns} data={data} loading={loading} onAdd={() => { setFormData({discount_type: 'percent'}); setShowModal(true); }} onEdit={(i) => { setFormData(i); setShowModal(true); }} onDelete={async (i) => { if(confirm("Hapus?")) { await api.delete(`/tenant/data/promos/${i.id}`); loadData(); } }} />
+            
+            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Form Promo">
                 <form onSubmit={handleSubmit}>
-                    <FormField label="Nama Promo" name="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-                    <FormField label="Kode Promo" name="code" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} required placeholder="PROMO10" />
-                    <FormField label="Tipe Diskon" name="discount_type" type="select" value={formData.discount_type} onChange={(e) => setFormData({ ...formData, discount_type: e.target.value })} options={[{ value: 'percentage', label: 'Persentase (%)' }, { value: 'fixed', label: 'Nominal (Rp)' }]} required />
-                    <FormField label="Nilai Diskon" name="discount_value" type="number" value={formData.discount_value} onChange={(e) => setFormData({ ...formData, discount_value: e.target.value })} required />
-                    <FormField label="Tanggal Mulai" name="start_date" type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} required />
-                    <FormField label="Tanggal Berakhir" name="end_date" type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} required />
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
+                    <FormField label="Nama Promo" name="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                    <FormField label="Kode Voucher" name="code" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} required />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Tipe Diskon" name="discount_type" type="select" options={[{value:'percent', label:'Persen (%)'}, {value:'fixed', label:'Nominal (Rp)'}]} value={formData.discount_type} onChange={e => setFormData({...formData, discount_type: e.target.value})} />
+                        <FormField label="Nilai" name="discount_value" type="number" value={formData.discount_value} onChange={e => setFormData({...formData, discount_value: e.target.value})} required />
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Mulai" name="start_date" type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} />
+                        <FormField label="Berakhir" name="end_date" type="date" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} />
+                    </div>
+                    <button className="w-full bg-blue-600 text-white py-2 rounded mt-4 font-bold">Simpan</button>
                 </form>
             </Modal>
         </div>
