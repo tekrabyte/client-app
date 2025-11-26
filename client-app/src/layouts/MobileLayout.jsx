@@ -1,30 +1,30 @@
 import React from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, FileText, User, Menu } from "lucide-react";
+import { Outlet, Link, useLocation, useParams } from "react-router-dom";
+import { LayoutDashboard, ShoppingBag, FileText, User } from "lucide-react";
 
 export default function MobileLayout() {
+    const { slug } = useParams();
     const location = useLocation();
-    const { slug } = useParams(); // Ambil slug dari URL
     const activePath = location.pathname;
 
     const menus = [
         { icon: LayoutDashboard, label: "Home", path: `/${slug}/mobile/dashboard` },
         { icon: ShoppingBag, label: "Kasir", path: `/${slug}/mobile/pos` },
-        { icon: FileText, label: "Laporan", path: "/${slug}/mobile/reports" },
-        { icon: User, label: "Akun", path: "/${slug}/mobile/settings" },
+        { icon: FileText, label: "Laporan", path: `/${slug}/mobile/reports` },
+        { icon: User, label: "Akun", path: `/${slug}/mobile/settings` },
     ];
 
     return (
         <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
-            {/* Content Area (Scrollable) */}
+            {/* Main Content */}
             <main className="flex-1 overflow-y-auto pb-20 no-scrollbar">
                 <Outlet />
             </main>
 
-            {/* Bottom Navigation Bar */}
-            <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe pt-2 px-6 flex justify-between items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe pt-2 px-6 flex justify-between items-center z-50">
                 {menus.map((m, idx) => {
-                    const isActive = activePath.includes(m.path);
+                    const isActive = activePath === m.path; // Strict equality check
                     return (
                         <Link 
                             key={idx} 

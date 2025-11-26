@@ -95,7 +95,14 @@ export default function App() {
 
                 {/* ROUTE 2: LOGIN SPESIFIK TENANT */}
                 <Route path="/:slug/login" element={<Login />} />
-
+{/* ROUTE KHUSUS MOBILE PWA */}
+<Route path="/:slug/mobile" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+    <Route path="dashboard" element={<MobileDashboard />} />
+    <Route path="pos" element={<MobilePOS />} />
+    <Route path="reports" element={<MobileReports />} />
+    <Route path="settings" element={<MobileSettings />} />
+    {/* Tambahkan Settings dan Report mobile di sini */}
+</Route>
                 {/* ROUTE 3: DASHBOARD ADMIN */}
                 <Route path="/:slug/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
                     {/* Core */}
@@ -175,11 +182,3 @@ export default function App() {
     );
 }
 
-{/* ROUTE KHUSUS MOBILE PWA */}
-<Route path="/:slug/mobile" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
-    <Route path="dashboard" element={<MobileDashboard />} />
-    <Route path="pos" element={<MobilePOS />} />
-    <Route path="reports" element={<MobileReports />} />
-    <Route path="settings" element={<MobileSettings />} />
-    {/* Tambahkan Settings dan Report mobile di sini */}
-</Route>

@@ -30,9 +30,9 @@ export default function AdminLayout() {
     // --- TAMBAHAN: Sync Status Tenant Terbaru ---
     // Ini memastikan banner trial hilang otomatis setelah bayar tanpa perlu relogin
     useEffect(() => {
+        const isMobile = window.innerWidth < 768;
         // Jika lebar layar < 768px (HP), lempar ke tampilan mobile
-        if (window.innerWidth < 768) {
-            // Redirect ke mobile dengan menyertakan slug yang sedang aktif
+      if (isMobile && !location.pathname.includes("/mobile")) {
             navigate(`/${slug}/mobile/dashboard`, { replace: true });
         }
 
@@ -55,7 +55,7 @@ export default function AdminLayout() {
             }
         }
         syncStatus();
-    }, [slug]); // Jalan sekali saat layout dimuat
+    }, [slug, location.pathname]); // Jalan sekali saat layout dimuat
     // ---------------------------------------------
 
     // Hitung status trial
