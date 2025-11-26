@@ -1,58 +1,116 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/client';
-import DataTable from '../../components/DataTable';
-import PageHeader from '../../components/PageHeader';
-import Modal from '../../components/Modal';
+import { Search, Plus, Edit, Trash2, Store, Loader } from 'lucide-react';
+import Modal from '../../components/Modal'; 
 import FormField from '../../components/FormField';
+import PageHeader from '../../components/PageHeader';
 
 export default function Gratuity() {
     const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [outlets, setOutlets] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [editData, setEditData] = useState(null);
-    const [formData, setFormData] = useState({ name: '', rate: '0', is_default: false });
+    const [formData, setFormData] = useState({});
+    const [filterOutlet, setFilterOutlet] = useState("all");
+    const [search, setSearch] = useState("");
+    const [loading, setLoading] = useState(true);
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => { loadData(); }, [filterOutlet]);
 
-    async function loadData() {
+    const loadData = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/library/gratuity');
-            setData(res.data.gratuities || []);
-        } catch (error) { console.error('Failed to load gratuity:', error); setData([]); } finally { setLoading(false); }
-    }
+            const [resData, resOutlets] = await Promise.all([
+                api.get('/tenant/data/gratuity', { params: { outlet_id: filterOutlet !== 'all' ? filterOutlet : '' } }),
+                api.get('/tenant/outlets')
+            ]);
+            setData(resData.data.data || []);
+            setOutlets(resOutlets.data.outlets || []);
+        } catch (e) {} finally { setLoading(false); }
+    };
+
+    const isOutletLocked = filterOutlet !== 'all';
+
+    const handleOpenAdd = () => {
+        setFormData({ 
+            is_default: 0, 
+            outlet_id: isOutletLocked ? filterOutlet : (outlets[0]?.id || '') 
+        });
+        setShowModal(true);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (editData) { await api.put(`/library/gratuity/${editData.id}`, formData); } else { await api.post('/library/gratuity', formData); }
-            setShowModal(false); setFormData({ name: '', rate: '0', is_default: false }); setEditData(null); loadData();
-        } catch (error) { alert('Gagal menyimpan data: ' + error.message); }
+            const payload = { ...formData };
+            if (!payload.outlet_id) return alert("Pilih outlet!");
+            if (formData.id) await api.put(`/tenant/data/gratuity/${formData.id}`, payload);
+            else await api.post('/tenant/data/gratuity', payload);
+            setShowModal(false); loadData();
+        } catch (e) { alert("Gagal menyimpan."); }
     };
 
-    const columns = [
-        { header: 'Nama Gratuity', accessor: (item) => item.name || '-' },
-        { header: 'Tarif', accessor: (item) => `${item.rate}%` },
-        { header: 'Default', render: (item) => <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.is_default ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{item.is_default ? 'Ya' : 'Tidak'}</span> }
-    ];
+    const handleDelete = async (id) => {
+        if (confirm("Hapus gratuity?")) { await api.delete(`/tenant/data/gratuity/${id}`); loadData(); }
+    };
+
+    const filtered = data.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
 
     return (
-        <div>
-            <PageHeader title="Gratuity" subtitle="Kelola tip atau gratuitas" />
-            <DataTable columns={columns} data={data} loading={loading} onAdd={() => setShowModal(true)} onEdit={(item) => { setEditData(item); setFormData({ name: item.name, rate: item.rate, is_default: item.is_default }); setShowModal(true); }} onDelete={async (item) => { if (confirm(`Hapus gratuity "${item.name}"?`)) { await api.delete(`/library/gratuity/${item.id}`); loadData(); } }} searchPlaceholder="Cari gratuity..." />
+        <div className="h-full flex flex-col bg-gray-50">
+            <PageHeader title="Gratuity (Service Charge)" subtitle="Biaya layanan tambahan" />
+            
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <div className="relative w-full md:w-auto">
+                        <Store className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                        <select className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white min-w-[200px]"
+                            value={filterOutlet} onChange={e => setFilterOutlet(e.target.value)}>
+                            <option value="all">Semua Outlet</option>
+                            {outlets.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-64">
+                            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                            <input type="text" placeholder="Cari..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={search} onChange={e => setSearch(e.target.value)} />
+                        </div>
+                        <button onClick={handleOpenAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
+                            <Plus size={18}/> <span className="hidden md:inline">Tambah</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-            <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditData(null); }} title={editData ? 'Edit Gratuity' : 'Tambah Gratuity'}>
+            <div className="flex-1 overflow-auto">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 border-b text-xs uppercase text-gray-500 font-bold"><tr><th className="p-4">Nama</th><th className="p-4">Rate (%)</th><th className="p-4">Outlet</th><th className="p-4">Default</th><th className="p-4 text-right">Aksi</th></tr></thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {loading ? <tr><td colSpan="5" className="p-8 text-center"><Loader className="animate-spin inline mr-2"/> Memuat...</td></tr> :
+                            filtered.map(i => (
+                                <tr key={i.id} className="hover:bg-gray-50">
+                                    <td className="p-4 font-bold text-gray-800">{i.name}</td>
+                                    <td className="p-4 font-mono">{i.rate}%</td>
+                                    <td className="p-4 text-sm text-gray-600">{outlets.find(o=>o.id == i.outlet_id)?.name || '-'}</td>
+                                    <td className="p-4"><span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${i.is_default == 1 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>{i.is_default == 1 ? 'Ya' : 'Tidak'}</span></td>
+                                    <td className="p-4 text-right flex justify-end gap-2">
+                                        <button onClick={() => { setFormData(i); setShowModal(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Edit size={16}/></button>
+                                        <button onClick={() => handleDelete(i.id)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={formData.id ? "Edit Gratuity" : "Tambah Gratuity"}>
                 <form onSubmit={handleSubmit}>
-                    <FormField label="Nama Gratuity" name="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder="Contoh: Tip 10%" />
-                    <FormField label="Tarif (%)" name="rate" type="number" value={formData.rate} onChange={(e) => setFormData({ ...formData, rate: e.target.value })} required placeholder="10" />
-                    <div className="flex items-center mb-4">
-                        <input type="checkbox" checked={formData.is_default} onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })} className="mr-2" />
-                        <label className="text-sm text-gray-700">Jadikan default</label>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
-                    </div>
+                    <FormField label="Outlet" name="outlet_id" type="select" options={outlets.map(o => ({ value: o.id, label: o.name }))} value={formData.outlet_id} onChange={e => setFormData({...formData, outlet_id: e.target.value})} required disabled={isOutletLocked} />
+                    <FormField label="Nama" name="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required placeholder="Service Charge" />
+                    <FormField label="Rate (%)" name="rate" type="number" value={formData.rate} onChange={e => setFormData({...formData, rate: e.target.value})} required />
+                    <div className="mb-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.is_default == 1} onChange={e => setFormData({...formData, is_default: e.target.checked ? 1 : 0})} className="rounded text-blue-600"/> Jadikan Default</label></div>
+                    <button className="w-full bg-blue-600 text-white py-2 rounded-lg mt-4 font-bold hover:bg-blue-700 transition">Simpan</button>
                 </form>
             </Modal>
         </div>

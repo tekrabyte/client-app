@@ -4,6 +4,3 @@ import App from './App';
 import './style.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-if (res.reason === "suspended") {
-    window.location.href = res.renew_url;
-}

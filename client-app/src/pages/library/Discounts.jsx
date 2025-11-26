@@ -1,59 +1,120 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/client';
-import DataTable from '../../components/DataTable';
-import PageHeader from '../../components/PageHeader';
-import Modal from '../../components/Modal';
+import { Search, Plus, Edit, Trash2, Store, Loader } from 'lucide-react';
+import Modal from '../../components/Modal'; 
 import FormField from '../../components/FormField';
+import PageHeader from '../../components/PageHeader';
 
 export default function Discounts() {
     const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [outlets, setOutlets] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [editData, setEditData] = useState(null);
-    const [formData, setFormData] = useState({ name: '', type: 'percentage', value: '0', apply_to: 'all' });
+    const [formData, setFormData] = useState({});
+    const [filterOutlet, setFilterOutlet] = useState("all");
+    const [search, setSearch] = useState("");
+    const [loading, setLoading] = useState(true);
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => { loadData(); }, [filterOutlet]);
 
-    async function loadData() {
+    const loadData = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/library/discounts');
-            setData(res.data.discounts || []);
-        } catch (error) { console.error('Failed to load discounts:', error); setData([]); }
-        finally { setLoading(false); }
-    }
+            const [resData, resOutlets] = await Promise.all([
+                api.get('/tenant/data/discounts', { params: { outlet_id: filterOutlet !== 'all' ? filterOutlet : '' } }),
+                api.get('/tenant/outlets')
+            ]);
+            setData(resData.data.data || []);
+            setOutlets(resOutlets.data.outlets || []);
+        } catch (e) {} finally { setLoading(false); }
+    };
+
+    const isOutletLocked = filterOutlet !== 'all';
+
+    const handleOpenAdd = () => {
+        setFormData({ 
+            type: 'percentage', 
+            apply_to: 'all', 
+            outlet_id: isOutletLocked ? filterOutlet : (outlets[0]?.id || '') 
+        });
+        setShowModal(true);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (editData) { await api.put(`/library/discounts/${editData.id}`, formData); }
-            else { await api.post('/library/discounts', formData); }
-            setShowModal(false); setFormData({ name: '', type: 'percentage', value: '0', apply_to: 'all' }); setEditData(null); loadData();
-        } catch (error) { alert('Gagal menyimpan data: ' + error.message); }
+            const payload = { ...formData };
+            if (!payload.outlet_id) return alert("Pilih outlet!");
+            if (formData.id) await api.put(`/tenant/data/discounts/${formData.id}`, payload);
+            else await api.post('/tenant/data/discounts', payload);
+            setShowModal(false); loadData();
+        } catch (e) { alert("Gagal menyimpan."); }
     };
 
-    const columns = [
-        { header: 'Nama Diskon', accessor: (item) => item.name || '-' },
-        { header: 'Tipe', accessor: (item) => item.type === 'percentage' ? 'Persentase' : 'Nominal' },
-        { header: 'Nilai', accessor: (item) => item.type === 'percentage' ? `${item.value}%` : `Rp ${parseInt(item.value || 0).toLocaleString()}` },
-        { header: 'Diterapkan Ke', accessor: (item) => item.apply_to === 'all' ? 'Semua Produk' : 'Produk Tertentu' }
-    ];
+    const handleDelete = async (id) => {
+        if (confirm("Hapus diskon?")) { await api.delete(`/tenant/data/discounts/${id}`); loadData(); }
+    };
+
+    const filtered = data.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
 
     return (
-        <div>
-            <PageHeader title="Discounts" subtitle="Kelola diskon produk" />
-            <DataTable columns={columns} data={data} loading={loading} onAdd={() => setShowModal(true)} onEdit={(item) => { setEditData(item); setFormData({ name: item.name, type: item.type, value: item.value, apply_to: item.apply_to }); setShowModal(true); }} onDelete={async (item) => { if (confirm(`Hapus diskon "${item.name}"?`)) { await api.delete(`/library/discounts/${item.id}`); loadData(); } }} searchPlaceholder="Cari diskon..." />
-
-            <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditData(null); }} title={editData ? 'Edit Diskon' : 'Tambah Diskon'}>
-                <form onSubmit={handleSubmit}>
-                    <FormField label="Nama Diskon" name="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-                    <FormField label="Tipe Diskon" name="type" type="select" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} options={[{ value: 'percentage', label: 'Persentase (%)' }, { value: 'fixed', label: 'Nominal (Rp)' }]} required />
-                    <FormField label="Nilai Diskon" name="value" type="number" value={formData.value} onChange={(e) => setFormData({ ...formData, value: e.target.value })} required />
-                    <FormField label="Diterapkan Ke" name="apply_to" type="select" value={formData.apply_to} onChange={(e) => setFormData({ ...formData, apply_to: e.target.value })} options={[{ value: 'all', label: 'Semua Produk' }, { value: 'specific', label: 'Produk Tertentu' }]} required />
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
+        <div className="h-full flex flex-col bg-gray-50">
+            <PageHeader title="Discounts" subtitle="Diskon otomatis dan manual" />
+            
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <div className="relative w-full md:w-auto">
+                        <Store className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                        <select className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white min-w-[200px]"
+                            value={filterOutlet} onChange={e => setFilterOutlet(e.target.value)}>
+                            <option value="all">Semua Outlet</option>
+                            {outlets.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                        </select>
                     </div>
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-64">
+                            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                            <input type="text" placeholder="Cari diskon..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={search} onChange={e => setSearch(e.target.value)} />
+                        </div>
+                        <button onClick={handleOpenAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
+                            <Plus size={18}/> <span className="hidden md:inline">Diskon Baru</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 border-b text-xs uppercase text-gray-500 font-bold"><tr><th className="p-4">Nama Diskon</th><th className="p-4">Tipe</th><th className="p-4">Nilai</th><th className="p-4">Outlet</th><th className="p-4 text-right">Aksi</th></tr></thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {loading ? <tr><td colSpan="5" className="p-8 text-center"><Loader className="animate-spin inline mr-2"/> Memuat...</td></tr> :
+                            filtered.map(i => (
+                                <tr key={i.id} className="hover:bg-gray-50">
+                                    <td className="p-4 font-bold text-gray-800">{i.name}</td>
+                                    <td className="p-4 text-sm capitalize text-gray-600">{i.type}</td>
+                                    <td className="p-4 font-mono font-medium text-blue-600">{i.type === 'percentage' ? i.value + '%' : 'Rp ' + parseInt(i.value).toLocaleString()}</td>
+                                    <td className="p-4 text-sm text-gray-600">{outlets.find(o=>o.id == i.outlet_id)?.name || '-'}</td>
+                                    <td className="p-4 text-right flex justify-end gap-2">
+                                        <button onClick={() => { setFormData(i); setShowModal(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Edit size={16}/></button>
+                                        <button onClick={() => handleDelete(i.id)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={formData.id ? "Edit Diskon" : "Tambah Diskon"}>
+                <form onSubmit={handleSubmit}>
+                    <FormField label="Outlet" name="outlet_id" type="select" options={outlets.map(o => ({ value: o.id, label: o.name }))} value={formData.outlet_id} onChange={e => setFormData({...formData, outlet_id: e.target.value})} required disabled={isOutletLocked} />
+                    <FormField label="Nama Diskon" name="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Tipe" name="type" type="select" options={[{value:'percentage', label:'Persen (%)'}, {value:'fixed', label:'Nominal (Rp)'}]} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} />
+                        <FormField label="Nilai" name="value" type="number" value={formData.value} onChange={e => setFormData({...formData, value: e.target.value})} required />
+                    </div>
+                    <FormField label="Berlaku Untuk" name="apply_to" type="select" options={[{value:'all', label:'Semua Produk'}, {value:'specific', label:'Produk Tertentu'}]} value={formData.apply_to} onChange={e => setFormData({...formData, apply_to: e.target.value})} />
+                    <button className="w-full bg-blue-600 text-white py-2 rounded-lg mt-4 font-bold hover:bg-blue-700 transition">Simpan</button>
                 </form>
             </Modal>
         </div>
