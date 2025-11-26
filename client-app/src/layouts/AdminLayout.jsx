@@ -31,13 +31,10 @@ export default function AdminLayout() {
     // Ini memastikan banner trial hilang otomatis setelah bayar tanpa perlu relogin
     useEffect(() => {
         // Jika lebar layar < 768px (HP), lempar ke tampilan mobile
-      useEffect(() => {
         if (window.innerWidth < 768) {
             // Redirect ke mobile dengan menyertakan slug yang sedang aktif
             navigate(`/${slug}/mobile/dashboard`, { replace: true });
         }
-    }, [slug]);
-   
 
         async function syncStatus() {
             try {
@@ -58,7 +55,7 @@ export default function AdminLayout() {
             }
         }
         syncStatus();
-    }, []); // Jalan sekali saat layout dimuat
+    }, [slug]); // Jalan sekali saat layout dimuat
     // ---------------------------------------------
 
     // Hitung status trial
