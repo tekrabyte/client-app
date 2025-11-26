@@ -30,6 +30,12 @@ export default function AdminLayout() {
     // --- TAMBAHAN: Sync Status Tenant Terbaru ---
     // Ini memastikan banner trial hilang otomatis setelah bayar tanpa perlu relogin
     useEffect(() => {
+        // Jika lebar layar < 768px (HP), lempar ke tampilan mobile
+        if (window.innerWidth < 768) {
+            navigate("/mobile/dashboard", { replace: true });
+        }
+   
+
         async function syncStatus() {
             try {
                 const res = await api.get("/tenant/settings");

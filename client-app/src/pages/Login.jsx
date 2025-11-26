@@ -33,13 +33,16 @@ export default function Login() {
 
                 // Simpan session
                 login(res.data); 
-
-                // Redirect ke Dashboard spesifik tenant
-                // Contoh: /kopikenangan/
-                navigate(`/${tenantSlug}/`);
+if (window.innerWidth < 768) {
+                    navigate("/mobile/dashboard");
+                } else {
+                    // Jika di Desktop, arahkan ke Dashboard Admin biasa
+                    navigate(`/${tenantSlug}/`);
+                }
+                // -------------------------
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Email atau Password salah.");
+            // ... error handling
         } finally {
             setLoading(false);
         }
