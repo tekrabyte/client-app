@@ -6,7 +6,10 @@ export default {
   ],
   theme: {
     extend: {
-      // Opsional: Anda bisa menambahkan custom font size di sini jika perlu
+      colors: {
+        primary: '#1D6FFF', // Warna request user
+        'primary-dark': '#165bce', // Versi agak gelap untuk hover
+      },
     },
   },
   plugins: [
