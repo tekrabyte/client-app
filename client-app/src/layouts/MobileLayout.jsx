@@ -4,13 +4,14 @@ import { LayoutDashboard, ShoppingBag, FileText, User, Menu } from "lucide-react
 
 export default function MobileLayout() {
     const location = useLocation();
+    const { slug } = useParams(); // Ambil slug dari URL
     const activePath = location.pathname;
 
     const menus = [
-        { icon: LayoutDashboard, label: "Home", path: "/mobile/dashboard" },
-        { icon: ShoppingBag, label: "Kasir", path: "/mobile/pos" },
-        { icon: FileText, label: "Laporan", path: "/mobile/reports" },
-        { icon: User, label: "Akun", path: "/mobile/settings" },
+        { icon: LayoutDashboard, label: "Home", path: `/${slug}/mobile/dashboard` },
+        { icon: ShoppingBag, label: "Kasir", path: `/${slug}/mobile/pos` },
+        { icon: FileText, label: "Laporan", path: "/${slug}/mobile/reports" },
+        { icon: User, label: "Akun", path: "/${slug}/mobile/settings" },
     ];
 
     return (

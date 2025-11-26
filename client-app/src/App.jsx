@@ -4,6 +4,8 @@ import { useAuth } from "./store/auth";
 import MobileLayout from "./layouts/MobileLayout";
 import MobileDashboard from "./pages/mobile/MobileDashboard";
 import MobilePOS from "./pages/mobile/MobilePOS";
+import MobileReports from "./pages/mobile/MobileReports"; // <-- Import
+import MobileSettings from "./pages/mobile/MobileSettings"; // <-- Import
 
 // Layouts
 import AdminLayout from "./layouts/AdminLayout";
@@ -174,8 +176,10 @@ export default function App() {
 }
 
 {/* ROUTE KHUSUS MOBILE PWA */}
-<Route path="/mobile" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+<Route path="/:slug/mobile" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
     <Route path="dashboard" element={<MobileDashboard />} />
     <Route path="pos" element={<MobilePOS />} />
+    <Route path="reports" element={<MobileReports />} />
+    <Route path="settings" element={<MobileSettings />} />
     {/* Tambahkan Settings dan Report mobile di sini */}
 </Route>

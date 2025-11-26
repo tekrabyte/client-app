@@ -34,13 +34,12 @@ export default function Login() {
                 // Simpan session
                 login(res.data); 
 if (window.innerWidth < 768) {
-                    navigate("/mobile/dashboard");
-                } else {
-                    // Jika di Desktop, arahkan ke Dashboard Admin biasa
-                    navigate(`/${tenantSlug}/`);
-                }
-                // -------------------------
-            }
+        // Arahkan ke URL dengan slug
+        navigate(`/${tenantSlug}/mobile/dashboard`);
+    } else {
+        navigate(`/${tenantSlug}/`);
+    }
+}
         } catch (err) {
             // ... error handling
         } finally {
